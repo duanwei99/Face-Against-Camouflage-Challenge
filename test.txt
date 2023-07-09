@@ -1,0 +1,38 @@
+class logSaver():
+    def __init__(self, logname):
+        self.logname = logname
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+        if self.logname == None:
+            self.logpath_out = os.devnull
+            self.logpath_err = os.devnull
+        else:
+            self.logpath_out = log_dir / (logname + "_out.log")
+            self.logpath_err = log_dir / (logname + "_err.log")
+
+        self.logfile_out = os.open(self.logpath_out, os.O_WRONLY | os.O_TRUNC | os.O_CREAT)
+        self.logfile_err = os.open(self.logpath_err, os.O_WRONLY | os.O_TRUNC | os.O_CREAT)
+
+    def __enter__(self):
+        self.orig_stdout = sys.stdout  # save original stdout
+        self.orig_stderr = sys.stderr  # save original stderr
+
+        self.new_stdout = os.dup(1)
+        self.new_stderr = os.dup(2)
+
+        os.dup2(self.logfile_out, 1)
+        os.dup2(self.logfile_err, 2)
+
+        sys.stdout = os.fdopen(self.new_stdout, 'w')
+        sys.stderr = os.fdopen(self.new_stderr, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+        sys.stdout = self.orig_stdout  # restore original stdout
+        sys.stderr = self.orig_stderr  # restore original stderr
+
+        os.close(self.logfile_out)
+        os.close(self.logfile_err)
